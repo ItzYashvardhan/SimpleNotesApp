@@ -1,5 +1,6 @@
 package com.justlime.simplenotesapp.data.repository
 
+import android.text.BoringLayout
 import com.justlime.simplenotesapp.data.local.dao.NotesDao
 import com.justlime.simplenotesapp.data.maper.toNoteEntity
 import com.justlime.simplenotesapp.data.maper.toNoteEntityWithId
@@ -23,8 +24,13 @@ class NotesRepositoryImpl(private val dao: NotesDao): NotesRepository {
         }
     }
 
-    override suspend fun addNote(note: Note) {
-        dao.addNote(note.toNoteEntity())
+    override suspend fun addNote(note: Note,useGivenId: Boolean) {
+        if (useGivenId){
+            dao.addNote(note.toNoteEntityWithId())
+        }else{
+            dao.addNote(note.toNoteEntity())
+
+        }
     }
 
     override suspend fun deleteNote(noteId: Int) {

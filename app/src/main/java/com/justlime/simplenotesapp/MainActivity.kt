@@ -45,6 +45,7 @@ class MainActivity : ComponentActivity() {
                                 val route = UpsertRoute(it.id, isAdding = false)
                                 navController.navigate(route)
                             },
+                            onUndo = { viewModel.onUndoNote(it) },
                             onDelete = { viewModel.onDeleteNote(it) }
                         )
                     }

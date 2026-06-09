@@ -27,6 +27,11 @@ class NotesViewModel @Inject constructor(private val repository: NotesRepository
         }
     }
 
+    fun onUndoNote(note: Note){
+        viewModelScope.launch {
+            repository.addNote(note,true)
+        }
+    }
     fun onDeleteNote(id: Int) {
         viewModelScope.launch {
             repository.deleteNote(id)
