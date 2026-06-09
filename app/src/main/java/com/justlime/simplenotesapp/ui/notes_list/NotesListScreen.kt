@@ -36,7 +36,6 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -119,9 +118,11 @@ fun NoteCard(note: Note, onClick: (note: Note) -> Unit, onDelete: (note: Note) -
 
 
             Box {
-                Row(Modifier
-                    .fillMaxWidth()
-                    .padding(8.dp)) {
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp)
+                ) {
                     Spacer(Modifier.weight(1f))
                     Icon(Icons.Default.Close, "Delete Note", Modifier.clickable {
                         onDelete(note)
@@ -139,42 +140,44 @@ fun NoteCard(note: Note, onClick: (note: Note) -> Unit, onDelete: (note: Note) -
                         Text(finalTitle, fontSize = 28.sp)
                         Spacer(Modifier.height(4.dp))
                         Log.d("myApp", "Length: ${note.description.length} of ${note.description}")
-                        val trimDesc = note.description.replace("\n", " ").trim()
-                        var finalDescription = trimDesc
-                        if (trimDesc.length > 30) {
-                            finalDescription = trimDesc.dropLast(trimDesc.length - 30)
-                        }
-                        if (!isExpanded) {
-                            Row {
-                                Text(finalDescription, fontSize = 16.sp)
-                                if (trimDesc.length > 30) {
-                                    Text(
-                                        "...",
-                                        modifier = Modifier.clickable { isExpanded = true },
-                                        color = LightBlue
-                                    )
-                                }
-                            }
-                        } else {
-                            Column(verticalArrangement = Arrangement.Bottom){
-                                Row(modifier = Modifier.fillMaxSize()){
-                                    Text(note.description)
-                                }
-                                Row(modifier = Modifier.fillMaxSize(),horizontalArrangement = Arrangement.End){
-                                    Text("Hide",
-                                        modifier = Modifier.clickable { isExpanded = false },
-                                        color = LightBlue
-                                    )
-                                }
-
-                            }
+                        ShowDescription(isExpanded, note.description) {
+                            isExpanded = it
                         }
 
                     }
+
                 }
             }
+        }
 
 
+    }
+}
+
+@Composable
+fun ShowDescription(isExpanded: Boolean, description: String, onExpand: (Boolean) -> Unit) {
+    val trimDesc = description.replace("\n", " ").trim()
+    val isLongText = trimDesc.length > 30
+    val finalDescription =
+        if (isExpanded) {
+            description
+        } else {
+            if (isLongText) {
+                trimDesc.dropLast(trimDesc.length - 30) + "..."
+            } else trimDesc
+        }
+    Column(verticalArrangement = Arrangement.Bottom) {
+        Row(modifier = Modifier.fillMaxSize()) {
+            Text(finalDescription)
+        }
+        if (isLongText) {
+            Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.End) {
+                Text(
+                    if (isExpanded) "Hide" else "Show",
+                    modifier = Modifier.clickable { onExpand(!isExpanded) },
+                    color = LightBlue
+                )
+            }
         }
     }
 }
