@@ -2,12 +2,14 @@ package com.justlime.simplenotesapp.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.justlime.simplenotesapp.domain.enums.Priority
 
-@Entity("notes")
-data class NoteEntity(
+@Entity(tableName = "tasks")
+data class TaskEntity(
     @PrimaryKey(autoGenerate = true) val id: Int = 0,
     val title: String,
     val description: String,
-    val createdAt: Long = System.currentTimeMillis(),
+    val status: String,
+    val priority: String,
+    val createdAt: Long,
+    val updatedAt: Long
 )

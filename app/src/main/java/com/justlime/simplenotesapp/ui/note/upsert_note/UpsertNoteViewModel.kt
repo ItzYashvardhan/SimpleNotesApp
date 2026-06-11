@@ -1,4 +1,4 @@
-package com.justlime.simplenotesapp.ui.upsert_note
+package com.justlime.simplenotesapp.ui.note.upsert_note
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -6,7 +6,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.navigation.toRoute
 import com.justlime.simplenotesapp.domain.models.Note
 import com.justlime.simplenotesapp.domain.repository.NotesRepository
-import com.justlime.simplenotesapp.ui.route.UpsertRoute
+import com.justlime.simplenotesapp.ui.route.UpsertNoteRoute
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -22,7 +22,7 @@ class UpsertNoteViewModel @Inject constructor(
 ) : ViewModel() {
 
 
-    val route = savedStateHandle.toRoute<UpsertRoute>()
+    val route = savedStateHandle.toRoute<UpsertNoteRoute>()
     val id = route.id
     val isAdding = route.isAdding
 

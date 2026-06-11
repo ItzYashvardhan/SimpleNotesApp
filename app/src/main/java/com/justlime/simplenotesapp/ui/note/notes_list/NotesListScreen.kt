@@ -1,4 +1,4 @@
-package com.justlime.simplenotesapp.ui.notes_list
+package com.justlime.simplenotesapp.ui.note.notes_list
 
 import android.util.Log
 import androidx.compose.foundation.clickable
@@ -14,24 +14,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.Card
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarDuration
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -41,64 +30,33 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.justlime.simplenotesapp.domain.models.Note
 import com.justlime.simplenotesapp.ui.theme.LightBlue
-import kotlinx.coroutines.launch
 
 @Composable
 fun NotesListScreen(
-    onNavigateToAddEditNote: (id: Int, isAdding: Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+    onSnackBarLaunch: (Note) -> Unit,
     notes: List<Note>,
     onClick: (note: Note) -> Unit = {},
-    onUndo: (note: Note) -> Unit = {},
     onDelete: (id: Int) -> Unit = {},
 ) {
-    val scope = rememberCoroutineScope()
-    val snackBarHostState = remember { SnackbarHostState() }
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        topBar = { AppHeader() },
-        floatingActionButton = {
-            FloatingActionButton(onClick = {
-                onNavigateToAddEditNote(-1, true)
-            }) {
-                Icon(imageVector = Icons.Default.Add, contentDescription = "Add Note")
+    LazyColumn(
+        modifier = modifier.fillMaxSize(),
+    ) {
+        Log.d("myApp", "Size of notes is ${notes.size}")
+        items(notes) { note ->
+            NoteCard(note = note, onClick) { note ->
+                onSnackBarLaunch(note)
+                onDelete(note.id)
             }
-        },
-        snackbarHost = {
-            SnackbarHost(snackBarHostState)
         }
-    ) { padding ->
-        LazyColumn(
+    }
+    if (notes.isEmpty()) {
+        Column(
             modifier = Modifier.fillMaxSize(),
-            contentPadding = padding
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            items(notes) { note ->
-                NoteCard(note = note, onClick) { note ->
-                    scope.launch {
-                        val result = snackBarHostState.showSnackbar(
-                            "You have deleted a note",
-                            "Undo",
-                            true,
-                            SnackbarDuration.Long
-                        )
-                        when (result) {
-                            SnackbarResult.Dismissed -> {}
-                            SnackbarResult.ActionPerformed -> {
-                                onUndo(note)
-                            }
-                        }
-                    }
-                    onDelete(note.id)
-                }
-            }
-        }
-        if (notes.isEmpty()) {
-            Column(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.Center,
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Text("No notes available")
-            }
+            Text("No notes available")
         }
     }
 }
@@ -157,43 +115,33 @@ fun NoteCard(note: Note, onClick: (note: Note) -> Unit, onDelete: (note: Note) -
 @Composable
 fun ShowDescription(isExpanded: Boolean, description: String, onExpand: (Boolean) -> Unit) {
     val trimDesc = description.replace("\n", " ").trim()
-    val isLongText = trimDesc.length > 30
+    val isLongTextLimit = 50
+    val isLongText = trimDesc.length > isLongTextLimit
+    val descriptionSize = 12.sp
     val finalDescription =
         if (isExpanded) {
             description
         } else {
             if (isLongText) {
-                trimDesc.dropLast(trimDesc.length - 30) + "..."
+                val lettersToRemoved = trimDesc.length-isLongTextLimit+3
+                trimDesc.dropLast(lettersToRemoved) + "..."
             } else trimDesc
         }
     Column(verticalArrangement = Arrangement.Bottom) {
         Row(modifier = Modifier.fillMaxSize()) {
-            Text(finalDescription)
+            Text(finalDescription, fontSize = descriptionSize)
         }
         if (isLongText) {
             Row(modifier = Modifier.fillMaxSize(), horizontalArrangement = Arrangement.End) {
                 Text(
                     if (isExpanded) "Hide" else "Show",
                     modifier = Modifier.clickable { onExpand(!isExpanded) },
-                    color = LightBlue
+                    color = LightBlue,
+                    fontSize = descriptionSize
                 )
             }
         }
     }
-}
-
-fun addMoreToText(description: String) {
-    val totalNewLines = description.contains("/n")
-    description.length
-}
-
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun AppHeader() {
-    TopAppBar(
-        title = { Text("Notes List") }
-    )
 }
 
 @Preview("Note Card Preview")
@@ -212,7 +160,8 @@ fun NoteCardPreview() {
 @Composable
 fun NotesListScreenPreview() {
     NotesListScreen(
-        onNavigateToAddEditNote = { _, _ -> Unit },
+        Modifier,
+        { },
         notes = listOf(
             Note(0, "Grocery List Shopping", "Milk, Eggs, Bread, Butter"),
             Note(0, "Work Meeting", "Discuss project milestones and deadlines"),

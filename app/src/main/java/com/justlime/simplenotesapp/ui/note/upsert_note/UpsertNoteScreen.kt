@@ -1,4 +1,4 @@
-package com.justlime.simplenotesapp.ui.upsert_note
+package com.justlime.simplenotesapp.ui.note.upsert_note
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column

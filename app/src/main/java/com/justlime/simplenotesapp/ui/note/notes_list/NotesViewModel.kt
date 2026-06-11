@@ -1,4 +1,4 @@
-package com.justlime.simplenotesapp.ui.notes_list
+package com.justlime.simplenotesapp.ui.note.notes_list
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
