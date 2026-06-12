@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.justlime.simplenotesapp.domain.models.Task
 import com.justlime.simplenotesapp.domain.repository.TaskRepository
-import com.justlime.simplenotesapp.ui.task.state.uiTaskState
+import com.justlime.simplenotesapp.ui.task.state.UiTaskState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -23,32 +23,22 @@ class TaskViewModel @Inject constructor(
     private val _isLoading = MutableStateFlow(false)
     private val _error = MutableStateFlow<String?>(null)
 
-    val state: StateFlow<uiTaskState> = combine(
+    val state: StateFlow<UiTaskState> = combine(
         _isLoading, repository.getTasks(), _error,
     ) { isLoading, tasks, error ->
         when {
-            isLoading -> uiTaskState.Loading
-            tasks.isEmpty() -> uiTaskState.Success(emptyList())
-            error != null -> uiTaskState.Error(error)
-            else -> uiTaskState.Success(tasks)
+            isLoading -> UiTaskState.Loading
+            tasks.isEmpty() -> UiTaskState.Success(emptyList())
+            error != null -> UiTaskState.Error(error)
+            else -> UiTaskState.Success(tasks)
         }
     }.onStart {
         _isLoading.value = false
     }.stateIn(
         viewModelScope,
         SharingStarted.WhileSubscribed(5000),
-        uiTaskState.Loading
+        UiTaskState.Loading
     )
-
-    init {
-        loadTasks()
-    }
-
-    fun loadTasks() {
-        viewModelScope.launch {
-
-        }
-    }
 
     fun onDeleteTask(id: Int) {
         viewModelScope.launch {

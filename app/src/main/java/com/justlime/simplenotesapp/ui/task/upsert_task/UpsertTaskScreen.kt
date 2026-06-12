@@ -21,7 +21,6 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.AddTask
 import androidx.compose.material3.Button
 import androidx.compose.material3.Card
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -45,41 +44,24 @@ import androidx.compose.ui.unit.sp
 import com.justlime.simplenotesapp.domain.enums.Priority
 import com.justlime.simplenotesapp.domain.enums.Status
 import com.justlime.simplenotesapp.domain.models.Task
-import com.justlime.simplenotesapp.ui.task.state.uiTaskState
 import com.justlime.simplenotesapp.utils.mockTask
-import com.justlime.simplenotesapp.utils.mockTaskList
 
 @Composable
 fun UpsertTaskScreen(
     modifier: Modifier = Modifier,
     isAdding: Boolean,
     task: Task,
-    taskState: uiTaskState,
     onAdd: (task: Task) -> Unit,
     onUpdate: (task: Task) -> Unit,
     onBack: () -> Unit
 ) {
-    when (taskState) {
-        uiTaskState.Loading -> {
-            CircularProgressIndicator()
-        }
-
-        is uiTaskState.Error -> {
-
-        }
-
-        is uiTaskState.Success -> {
-            TaskUpsertContent(taskState, task, modifier, isAdding, onAdd, onUpdate, onBack)
-        }
-    }
-
+    TaskUpsertContent(modifier, task, isAdding, onAdd, onUpdate, onBack)
 }
 
 @Composable
 private fun TaskUpsertContent(
-    state: uiTaskState,
-    task: Task,
     modifier: Modifier,
+    task: Task,
     isAdding: Boolean,
     onAdd: (Task) -> Unit,
     onUpdate: (Task) -> Unit,
@@ -253,7 +235,6 @@ fun PreviewUpsertTaskScreen() {
         Modifier.padding(32.dp),
         true,
         mockTask,
-        taskState = uiTaskState.Success(mockTaskList),
         {},
         {}) {}
 }

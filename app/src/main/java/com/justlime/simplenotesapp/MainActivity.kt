@@ -5,6 +5,7 @@ import android.util.Log
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -12,6 +13,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.outlined.CheckBox
 import androidx.compose.material.icons.outlined.NoteAlt
+import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -29,10 +31,12 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -51,7 +55,7 @@ import com.justlime.simplenotesapp.ui.note.upsert_note.UpsertNoteViewModel
 import com.justlime.simplenotesapp.ui.payment_form.PaymentForm
 import com.justlime.simplenotesapp.ui.route.UpsertNoteRoute
 import com.justlime.simplenotesapp.ui.route.UpsertTaskRoute
-import com.justlime.simplenotesapp.ui.task.state.uiTaskState
+import com.justlime.simplenotesapp.ui.task.state.UiTaskState
 import com.justlime.simplenotesapp.ui.task.tasks_list.TaskListScreen
 import com.justlime.simplenotesapp.ui.task.tasks_list.TaskViewModel
 import com.justlime.simplenotesapp.ui.task.upsert_task.UpsertTaskScreen
@@ -73,12 +77,38 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SimpleNotesAppTheme {
-
-                Scaffold{
-                    PaymentForm(it)
+                var selectedApp by rememberSaveable { mutableStateOf(AppType.MAIN) }
+                return@SimpleNotesAppTheme when (selectedApp) {
+                    AppType.FORM -> Scaffold { PaymentForm(it) }
+                    AppType.NOTES -> NavigationTab()
+                    AppType.MAIN -> SimpleNav { selectedApp = it }
                 }
+            }
+        }
+    }
+}
 
-//                NavigationTab()
+enum class AppType {
+    FORM, NOTES, MAIN
+}
+
+@Composable
+fun SimpleNav(onClick: (AppType) -> Unit) {
+    Scaffold() {
+        Column(
+            modifier = Modifier
+                .padding(it)
+                .fillMaxSize(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Button(
+                { onClick(AppType.FORM) }) {
+                Text("Form App")
+            }
+            Button(
+                { onClick(AppType.NOTES) }) {
+                Text("Notes App")
             }
         }
     }
@@ -110,68 +140,57 @@ fun AppNavHost(
                     Destination.NOTES -> {
                         val viewModel: NotesViewModel = hiltViewModel()
                         val notes by viewModel.notes.collectAsState(initial = emptyList())
-                        NotesListScreen(
-                            modifier = modifier,
-                            { note ->
-                                scope.launch {
-                                    val result = snackBarHostState.showSnackbar(
-                                        "You have deleted a note",
-                                        "Undo",
-                                        true,
-                                        SnackbarDuration.Long
-                                    )
-                                    when (result) {
-                                        SnackbarResult.Dismissed -> {}
-                                        SnackbarResult.ActionPerformed -> {
-                                            viewModel.onUndoNote(note)
-                                        }
+                        NotesListScreen(modifier = modifier, { note ->
+                            scope.launch {
+                                val result = snackBarHostState.showSnackbar(
+                                    "You have deleted a note",
+                                    "Undo",
+                                    true,
+                                    SnackbarDuration.Long
+                                )
+                                when (result) {
+                                    SnackbarResult.Dismissed -> {}
+                                    SnackbarResult.ActionPerformed -> {
+                                        viewModel.onUndoNote(note)
                                     }
                                 }
-                            },
-                            notes = notes,
-                            onClick = {
-                                val route = UpsertNoteRoute(it.id, isAdding = false)
-                                navController.navigate(route)
-                            },
-                            onDelete = { id -> viewModel.onDeleteNote(id) })
+                            }
+                        }, notes = notes, onClick = {
+                            val route = UpsertNoteRoute(it.id, isAdding = false)
+                            navController.navigate(route)
+                        }, onDelete = { id -> viewModel.onDeleteNote(id) })
                     }
 
                     Destination.TASKS -> {
                         val viewModel: TaskViewModel = hiltViewModel()
                         val taskUiState by viewModel.state.collectAsState()
                         Log.d("myApp", taskUiState.toString())
-                        if (taskUiState is uiTaskState.Success) {
+                        if (taskUiState is UiTaskState.Success) {
                             Log.d(
                                 "myApp",
-                                "The Size is ${(taskUiState as uiTaskState.Success).tasks.size}"
+                                "The Size is ${(taskUiState as UiTaskState.Success).tasks.size}"
                             )
                         }
 
-                        TaskListScreen(
-                            modifier,
-                            onCheckBoxClick = {},
-                            onSnackBarLaunch = { task ->
-                                scope.launch {
-                                    val result = snackBarHostState.showSnackbar(
-                                        "You have deleted a task",
-                                        "Undo",
-                                        true,
-                                        SnackbarDuration.Long
-                                    )
-                                    when (result) {
-                                        SnackbarResult.Dismissed -> {}
-                                        SnackbarResult.ActionPerformed -> {
-                                            viewModel.onUndoTask(task)
-                                        }
+                        TaskListScreen(modifier, onCheckBoxClick = {}, onSnackBarLaunch = { task ->
+                            scope.launch {
+                                val result = snackBarHostState.showSnackbar(
+                                    "You have deleted a task",
+                                    "Undo",
+                                    true,
+                                    SnackbarDuration.Long
+                                )
+                                when (result) {
+                                    SnackbarResult.Dismissed -> {}
+                                    SnackbarResult.ActionPerformed -> {
+                                        viewModel.onUndoTask(task)
                                     }
                                 }
-                            },
-                            taskState = taskUiState,
-                            onClick = {
-                                val route = UpsertTaskRoute(it.id, isAdding = false)
-                                navController.navigate(route)
-                            },
-                            onDelete = { id -> viewModel.onDeleteTask(id) })
+                            }
+                        }, taskState = taskUiState, onClick = {
+                            val route = UpsertTaskRoute(it.id, isAdding = false)
+                            navController.navigate(route)
+                        }, onDelete = { id -> viewModel.onDeleteTask(id) })
                     }
                 }
             }
@@ -185,12 +204,12 @@ fun AppNavHost(
             val note by viewmodel.note.collectAsStateWithLifecycle(viewmodel.initialNote)
             val isAdding = viewmodel.isAdding
             UpsertNoteScreen(
+                modifier = modifier,
                 isAdding = isAdding,
                 note = note,
                 onUpdateNote = { viewmodel.onUpdateNote(it) },
                 onAddNote = { viewmodel.onAddNote(it) },
-                onBack = { navController.popBackStack() }
-            )
+                onBack = { navController.popBackStack() })
         }
         composable<UpsertTaskRoute> { backStackHandler ->
             val viewmodel = hiltViewModel<UpsertTaskViewModel>()
@@ -202,11 +221,9 @@ fun AppNavHost(
                 modifier,
                 isAdding = isAdding,
                 task = task.value ?: viewmodel.initialTask,
-                taskState = uiState,
                 onUpdate = { viewmodel.onUpdateTask(it) },
                 onAdd = { viewmodel.onAddTask(it) },
-                onBack = { navController.popBackStack() }
-            )
+                onBack = { navController.popBackStack() })
         }
 
 
@@ -239,7 +256,7 @@ fun NavigationTab(modifier: Modifier = Modifier) {
                 }
             }
         }) {
-            Icon(imageVector = Icons.Default.Add, contentDescription = "Add Task")
+            Icon(imageVector = Icons.Default.Add, contentDescription = "Add")
         }
     }, snackbarHost = {
         SnackbarHost(snackBarHostState)
@@ -248,7 +265,7 @@ fun NavigationTab(modifier: Modifier = Modifier) {
             when (destination) {
                 Destination.NOTES -> {
                     Column {
-                        Text("Notes", color = Color.Blue, fontSize = 48.sp)
+                        Text("Write Notes", color = Color.Blue, fontSize = 48.sp)
                         if (date != null) {
                             DateDisplay(date!!)
                         }
@@ -256,7 +273,12 @@ fun NavigationTab(modifier: Modifier = Modifier) {
                 }
 
                 Destination.TASKS -> {
-                    Text("Task Flow")
+                    Column {
+                        Text("Task Flow", color = Color.Blue, fontSize = 48.sp)
+                        if (date != null) {
+                            DateDisplay(date!!)
+                        }
+                    }
                 }
             }
         })
@@ -270,13 +292,10 @@ fun NavigationTab(modifier: Modifier = Modifier) {
                     selectedDestination = index
                 }, label = {
                     Text(
-                        text = destination.label,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
+                        text = destination.label, maxLines = 2, overflow = TextOverflow.Ellipsis
                     )
                 }, icon = { Icon(destination.icon, destination.contentDescription) })
             }
-
         }
     }
 
@@ -290,11 +309,6 @@ fun NavigationTab(modifier: Modifier = Modifier) {
                 .padding(contentPadding)
                 .fillMaxSize()
         )
-
-
-
-
-
     }
 
 

@@ -10,7 +10,7 @@ import com.justlime.simplenotesapp.domain.enums.Status
 import com.justlime.simplenotesapp.domain.models.Task
 import com.justlime.simplenotesapp.domain.repository.TaskRepository
 import com.justlime.simplenotesapp.ui.route.UpsertTaskRoute
-import com.justlime.simplenotesapp.ui.task.state.uiTaskState
+import com.justlime.simplenotesapp.ui.task.state.UiTaskState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -28,7 +28,7 @@ class UpsertTaskViewModel @Inject constructor(
 ) : ViewModel() {
 
 
-    private val _state = MutableStateFlow<uiTaskState>(uiTaskState.Loading)
+    private val _state = MutableStateFlow<UiTaskState>(UiTaskState.Loading)
     val state = _state.asStateFlow()
 
     val route = savedStateHandle.toRoute<UpsertTaskRoute>()
@@ -57,7 +57,7 @@ class UpsertTaskViewModel @Inject constructor(
                 Log.d("myApp", "Collecting...")
                 currentTask.addAll(it)
                 if (currentTask.isNotEmpty()) {
-                    _state.update { uiTaskState.Success(currentTask) }
+                    _state.update { UiTaskState.Success(currentTask) }
                 }
             }
         }
@@ -81,7 +81,7 @@ class UpsertTaskViewModel @Inject constructor(
         viewModelScope.launch {
             currentTask.add(task)
             repository.addTask(task)
-            _state.update { uiTaskState.Success(currentTask) }
+            _state.update { UiTaskState.Success(currentTask) }
         }
     }
 
@@ -89,12 +89,12 @@ class UpsertTaskViewModel @Inject constructor(
         viewModelScope.launch {
             val taskIndex = currentTask.indexOfFirst { it.id == task.id }
             if (taskIndex == -1) {
-                _state.update { uiTaskState.Error("The Task is not found or has been already deleted") }
+                _state.update { UiTaskState.Error("The Task is not found or has been already deleted") }
                 return@launch
             }
             currentTask[taskIndex] = task
             repository.updateTask(task)
-            _state.update { uiTaskState.Success(currentTask) }
+            _state.update { UiTaskState.Success(currentTask) }
 
         }
     }

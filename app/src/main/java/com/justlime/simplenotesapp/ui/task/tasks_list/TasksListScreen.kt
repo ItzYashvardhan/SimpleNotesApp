@@ -30,7 +30,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -40,7 +39,7 @@ import com.justlime.simplenotesapp.domain.enums.Priority
 import com.justlime.simplenotesapp.domain.enums.Status
 import com.justlime.simplenotesapp.domain.models.Task
 import com.justlime.simplenotesapp.ui.note.notes_list.ShowDescription
-import com.justlime.simplenotesapp.ui.task.state.uiTaskState
+import com.justlime.simplenotesapp.ui.task.state.UiTaskState
 import com.justlime.simplenotesapp.ui.theme.LightBlue
 import com.justlime.simplenotesapp.utils.mockTask
 import com.justlime.simplenotesapp.utils.mockTaskList
@@ -50,7 +49,7 @@ import com.justlime.simplenotesapp.utils.mockTaskList
 fun TaskListScreen(
     modifier: Modifier = Modifier,
     onSnackBarLaunch: (Task) -> Unit,
-    taskState: uiTaskState,
+    taskState: UiTaskState,
     onCheckBoxClick: (Status) -> Unit,
     onClick: (task: Task) -> Unit = {},
     onUndo: (task: Task) -> Unit = {},
@@ -58,7 +57,7 @@ fun TaskListScreen(
 ) {
 
     when (taskState) {
-        uiTaskState.Loading -> {
+        UiTaskState.Loading -> {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -68,7 +67,7 @@ fun TaskListScreen(
             }
         }
 
-        is uiTaskState.Success -> {
+        is UiTaskState.Success -> {
             TaskListContent(
                 modifier,
                 taskState.tasks,
@@ -79,7 +78,7 @@ fun TaskListScreen(
             )
         }
 
-        is uiTaskState.Error -> {
+        is UiTaskState.Error -> {
             Column(
                 modifier = Modifier.fillMaxSize(),
                 verticalArrangement = Arrangement.Center,
@@ -266,5 +265,5 @@ fun TaskCardPreview() {
 @Preview("TaskListScreen", showBackground = true, backgroundColor = 0xFFFFFFFF)
 @Composable
 fun TaskCardList() {
-    TaskListScreen(Modifier, {}, taskState = uiTaskState.Success(mockTaskList), {}, {})
+    TaskListScreen(Modifier, {}, taskState = UiTaskState.Success(mockTaskList), {}, {})
 }

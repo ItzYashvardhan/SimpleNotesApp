@@ -11,7 +11,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -85,7 +84,7 @@ fun PaymentForm(innerPadding: PaddingValues) {
         Modifier
             .padding(innerPadding + PaddingValues(16.dp, 8.dp)),
     ) {
-        item{
+        item {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
@@ -116,7 +115,7 @@ fun TableContainer() {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeader(scrollState, headers)
-        TableContent(scrollState, emptyList())
+//        TableContent(scrollState, emptyList())
         TableFooter(scrollState, headers.size)
     }
 }
