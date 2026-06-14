@@ -1,6 +1,5 @@
 package com.justlime.simplenotesapp.data.repository
 
-import android.text.BoringLayout
 import com.justlime.simplenotesapp.data.local.dao.NotesDao
 import com.justlime.simplenotesapp.data.maper.toNoteEntity
 import com.justlime.simplenotesapp.data.maper.toNoteEntityWithId

@@ -2,7 +2,6 @@ package com.justlime.simplenotesapp.data.local.entity
 
 import androidx.room.Entity
 import androidx.room.PrimaryKey
-import com.justlime.simplenotesapp.domain.enums.Priority
 
 @Entity("notes")
 data class NoteEntity(

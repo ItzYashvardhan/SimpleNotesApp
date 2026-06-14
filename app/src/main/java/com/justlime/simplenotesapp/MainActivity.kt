@@ -48,11 +48,11 @@ import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.justlime.simplenotesapp.ui.graphs.GraphRoute
 import com.justlime.simplenotesapp.ui.note.notes_list.NotesListScreen
 import com.justlime.simplenotesapp.ui.note.notes_list.NotesViewModel
 import com.justlime.simplenotesapp.ui.note.upsert_note.UpsertNoteScreen
-import com.justlime.simplenotesapp.ui.note.upsert_note.UpsertNoteViewModel
-import com.justlime.simplenotesapp.ui.payment_form.PaymentForm
+import com.justlime.simplenotesapp.ui.payment_form.PaymentFormRoute
 import com.justlime.simplenotesapp.ui.route.UpsertNoteRoute
 import com.justlime.simplenotesapp.ui.route.UpsertTaskRoute
 import com.justlime.simplenotesapp.ui.task.state.UiTaskState
@@ -77,11 +77,12 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SimpleNotesAppTheme {
-                var selectedApp by rememberSaveable { mutableStateOf(AppType.MAIN) }
+                var selectedApp by rememberSaveable { mutableStateOf(AppType.GRAPH) }
                 return@SimpleNotesAppTheme when (selectedApp) {
-                    AppType.FORM -> Scaffold { PaymentForm(it) }
+                    AppType.FORM -> Scaffold { PaymentFormRoute(it) }
                     AppType.NOTES -> NavigationTab()
                     AppType.MAIN -> SimpleNav { selectedApp = it }
+                    AppType.GRAPH -> GraphRoute()
                 }
             }
         }
@@ -89,7 +90,7 @@ class MainActivity : ComponentActivity() {
 }
 
 enum class AppType {
-    FORM, NOTES, MAIN
+    FORM, NOTES, MAIN, GRAPH
 }
 
 @Composable
@@ -109,6 +110,11 @@ fun SimpleNav(onClick: (AppType) -> Unit) {
             Button(
                 { onClick(AppType.NOTES) }) {
                 Text("Notes App")
+            }
+            Button(
+                {onClick(AppType.GRAPH)}
+            ){
+                Text("Graph App")
             }
         }
     }
@@ -196,19 +202,14 @@ fun AppNavHost(
             }
         }
         composable<UpsertNoteRoute> { backStackHandler ->
-
-            val viewmodel = hiltViewModel<UpsertNoteViewModel>()
-            val noteId = viewmodel.id
-            viewmodel.setNoteById(noteId)
-
-            val note by viewmodel.note.collectAsStateWithLifecycle(viewmodel.initialNote)
-            val isAdding = viewmodel.isAdding
             UpsertNoteScreen(
                 modifier = modifier,
-                isAdding = isAdding,
-                note = note,
-                onUpdateNote = { viewmodel.onUpdateNote(it) },
-                onAddNote = { viewmodel.onAddNote(it) },
+                onUpdateNote = {
+                   // viewmodel.onUpdateNote(it)
+                               },
+                onAddNote = {
+                  //  viewmodel.onAddNote(it)
+                            },
                 onBack = { navController.popBackStack() })
         }
         composable<UpsertTaskRoute> { backStackHandler ->

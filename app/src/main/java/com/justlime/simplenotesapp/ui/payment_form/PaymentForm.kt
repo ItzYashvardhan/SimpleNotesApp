@@ -14,10 +14,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.plus
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -38,12 +36,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -64,58 +57,274 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.text.isDigitsOnly
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.justlime.simplenotesapp.ui.payment_form.enums.PaymentTableHeader
+import com.justlime.simplenotesapp.ui.payment_form.event.DropDownEvent
+import com.justlime.simplenotesapp.ui.payment_form.event.PaymentEvent
+import com.justlime.simplenotesapp.ui.payment_form.state.PaymentState
 import com.justlime.simplenotesapp.ui.theme.LightPurpleGrey100
 import com.justlime.simplenotesapp.ui.theme.LightPurpleGrey100Border
 import com.justlime.simplenotesapp.ui.theme.LightPurpleGrey80
 import com.justlime.simplenotesapp.ui.theme.Purple40
 import com.justlime.simplenotesapp.ui.theme.smokeColor
+import com.justlime.simplenotesapp.utils.DecimalFormatter
+import com.justlime.simplenotesapp.utils.DecimalInputVisualTransformation
 import com.justlime.simplenotesapp.utils.currentTimeZone
 import kotlinx.datetime.LocalDateTime
 import kotlinx.datetime.format
 import kotlinx.datetime.format.char
 import kotlinx.datetime.toLocalDateTime
 import kotlin.time.Clock
+import kotlin.time.Instant
 
 
 @Composable
-fun PaymentForm(innerPadding: PaddingValues) {
+fun PaymentFormRoute(
+    innerPadding: PaddingValues,
+    viewModel: PaymentFormViewModel = hiltViewModel()
+) {
+    val state = viewModel.uiState.collectAsStateWithLifecycle().value
+    val event: (PaymentEvent) -> Unit = viewModel::onEvent
+    val tableHorizontalScrollState = rememberScrollState()
+    Column(modifier = Modifier.padding(innerPadding)) {
+        PaymentFormScreen(state, event, tableHorizontalScrollState)
+    }
+}
+
+// @formatter:off
+@Composable
+fun PaymentFormScreen(
+    state: PaymentState,
+    onEvent: (event: PaymentEvent) -> Unit = {},
+    tableHorizontalScrollState: ScrollState
+) {
 
     LazyColumn(
         Modifier
-            .padding(innerPadding + PaddingValues(16.dp, 8.dp)),
+            .padding(PaddingValues(16.dp, 8.dp)),
     ) {
         item {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                PayContainer()
-                BillContainer()
-                TableContainer()
-                ItemButtonContainer()
+                PayContainer(
+                    isExpanded = state.partyDropDownState.isExpanded,
+                    selectedOption = state.partyDropDownState.selectedOption,
+                    parties = state.partyDropDownState.options,
+                    creditAmount = state.creditAmount,
+                    advanceAmount = state.advanceAmount,
+                    onCreditValueChange = { onEvent(PaymentEvent.OnCreditAmountChange(it)) },
+                    onAmountValueChange = { onEvent(PaymentEvent.OnAdvanceAmountChange(it)) },
+                    onDropDownValueChange = {onEvent( PaymentEvent.OnPartyAction(DropDownEvent.OnOptionChange(it)))},
+                    onExpandedChange = {onEvent( PaymentEvent.OnPartyAction(DropDownEvent.OnExpandedChange(it)))},
+                    onDismissRequest = {onEvent( PaymentEvent.OnPartyAction(DropDownEvent.OnDismissRequest))}
+                )
+                BillContainer(
+                    billNumber = state.billNumber,
+                    date = state.billDate,
+                    onBillNumberChange = { onEvent(PaymentEvent.OnBillNumberChanged(it)) },
+                    onDateChange = { onEvent(PaymentEvent.OnDateChange(it)) }
+                )
+                TableContainer(
+                    headers = PaymentTableHeader.entries.map { it.name },
+                    data = state.tableData,
+                    scrollState = tableHorizontalScrollState
+                )
+                TableItemButtonContainer(
+                    onAddClick = { onEvent(PaymentEvent.OnAddItemClick) },
+                    onNewClick = { onEvent(PaymentEvent.OnNewItemClick) }
+                )
                 TermsAndConditionContainer()
-                PaymentModeContainer()
+                PaymentModeContainer(
+                    isExpanded = state.paymentModeDropDownState.isExpanded,
+                    selectedOption = state.paymentModeDropDownState.selectedOption,
+                    options = state.paymentModeDropDownState.options,
+                    onValueChange = {onEvent( PaymentEvent.OnPaymentModeAction(DropDownEvent.OnOptionChange(it)))},
+                    onExpandedChange = {onEvent( PaymentEvent.OnPaymentModeAction(DropDownEvent.OnExpandedChange(it)))},
+                    onDismissRequest = {onEvent( PaymentEvent.OnPaymentModeAction(DropDownEvent.OnDismissRequest))}
+                )
                 TotalContainer()
             }
         }
     }
 
 }
+//@formatter:on
+@Composable
+fun PayContainer(
+    isExpanded: Boolean,
+    selectedOption: String,
+    parties: List<String>,
+    creditAmount: Float = 0.0F,
+    advanceAmount: String = "",
+    onCreditValueChange: (String) -> Unit = {},
+    onAmountValueChange: (String) -> Unit = {},
+    onDropDownValueChange: (String) -> Unit = {},
+    onExpandedChange: (Boolean) -> Unit,
+    onDismissRequest: () -> Unit,
+) {
+    Column(
+        Modifier
+            .decorativeBorder()
+            .fillMaxWidth()
+    ) {
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceEvenly,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Label("Party Name ", true)
+            Spacer(Modifier.width(6.dp))
+            DropdownMenu(
+                isExpanded, selectedOption, parties,
+                onValueChange = onDropDownValueChange,
+                onDismissRequest = onDismissRequest,
+                onExpandedChange = onExpandedChange
+            )
+            Spacer(Modifier.width(4.dp))
+            Button(
+                onClick = {},
+                shape = RoundedCornerShape(8.dp)
+            ) {
+                Text("Add New +", fontSize = 10.sp)
+            }
+        }
+        Spacer(Modifier.height(6.dp))
+        AmountComponent("Credit Amount", creditAmount.toString()) {
+            onCreditValueChange(it)
+        }
+        Spacer(Modifier.height(12.dp))
+        AmountComponent(label = "Advance Amount", advanceAmount) {
+            onAmountValueChange(it)
+        }
+    }
+}
 
 @Composable
-fun TableContainer() {
-    val scrollState = rememberScrollState()
-    val headers = listOf(
-        "#",
-        "Product Name",
-        "Purchase Price",
-        "Bag Type",
-        "Bag/Pcs Qty"
-    )
-    val data = emptyList<List<String>>()
+fun AmountComponent(label: String, text: String, onValueChange: (String) -> Unit) {
+    Text(text)
+    Column {
+        Label(label)
+        Spacer(Modifier.height(6.dp))
+        BasicTextField(
+            // Note: See the warning below about modifying text directly in the value parameter
+            value = if (text == "0.0") "" else if (text.toIntOrNull().toString() == text) text.toIntOrNull().toString() else text,
+            onValueChange = { input ->
+                // 1. Instantly swap any typed comma into a standard period
+                val normalizedInput = input.replace(',', '.')
+
+                // 2. Allow digits and at most ONE period (changed [,] to \\.?)
+                if (normalizedInput.matches(Regex("^\\d*\\.?\\d*\$"))) {
+                    // Pass the clean, valid decimal string up to your state
+                    onValueChange(normalizedInput)
+                }
+            },
+            modifier = Modifier
+                .width(250.dp)
+                .height(34.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .border(
+                            width = 1.dp,
+                            color = Color.Gray,
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    innerTextField()
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal),
+        )
+    }
+}
+
+@Composable
+fun BillContainer(
+    billNumber: Number,
+    date: Instant,
+    onBillNumberChange: (Number) -> Unit,
+    onDateChange: (String) -> Unit
+) {
+    val datePickerState = rememberDatePickerState()
+    Column(
+        modifier = Modifier
+            .decorativeBorder()
+            .fillMaxWidth()
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Label("Bill No.", true)
+            Spacer(Modifier.width(12.dp))
+            TextComponent("{Bill No", billNumber, onBillNumberChange)
+        }
+        Spacer(Modifier.height(8.dp))
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Label("Bill Date", true)
+            Spacer(Modifier.width(12.dp))
+            DateComponent(date, datePickerState, onDateChange)
+        }
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+
+        }
+    }
+
+}
+
+@Composable
+fun TextComponent(label: String, value: Number, onValueChange: (Number) -> Unit) {
+
+    val finalValue = value.toString()
+
+    Column {
+        BasicTextField(
+            finalValue.ifEmpty { "0" },
+            onValueChange = {
+                if (it.isDigitsOnly()) onValueChange(it.toInt()) else onValueChange(value)
+            },
+            modifier = Modifier
+                .width(150.dp)
+                .height(34.dp),
+            decorationBox = { innerTextField ->
+                Box(
+                    modifier = Modifier
+                        .border(
+                            width = 1.dp,
+                            color = Color.Gray,
+                            shape = RoundedCornerShape(4.dp)
+                        )
+                        .padding(horizontal = 12.dp, vertical = 8.dp),
+                    contentAlignment = Alignment.CenterStart
+                ) {
+                    if (finalValue.isEmpty() || finalValue == "0") {
+                        Text(label, color = Color.Gray)
+                    } else {
+                        innerTextField()
+                    }
+                }
+            },
+            singleLine = true,
+            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
+        )
+    }
+}
+
+
+@Composable
+fun TableContainer(
+    headers: List<String>,
+    data: List<List<String>>,
+    scrollState: ScrollState
+) {
 
     Column(modifier = Modifier.fillMaxWidth()) {
         TableHeader(scrollState, headers)
-//        TableContent(scrollState, emptyList())
+        TableContent(scrollState, data)
         TableFooter(scrollState, headers.size)
     }
 }
@@ -151,17 +360,18 @@ fun TableHeader(
 
 @Composable
 fun TableContent(scrollState: ScrollState, data: List<List<String>>) {
-    LazyColumn {
-        items(data) { row ->
-            Row(modifier = Modifier.horizontalScroll(scrollState)) {
-                row.forEach { cell ->
-                    Text(
-                        text = cell,
-                        modifier = Modifier
-                            .width(100.dp)
-                            .padding(8.dp)
-                    )
-                }
+    val dataSize = data.size
+//    val offSet = 10
+    repeat(data.size) { index ->
+        val cell = data[index]
+        Row(modifier = Modifier.horizontalScroll(scrollState)) {
+            cell.forEach { cell ->
+                Text(
+                    text = cell,
+                    modifier = Modifier
+                        .width(100.dp)
+                        .padding(8.dp)
+                )
             }
         }
     }
@@ -195,134 +405,13 @@ fun TableFooter(scrollState: ScrollState, cellAmount: Int) {
 
 
 @Composable
-fun PayContainer() {
-    Column(
-        Modifier
-            .decorativeBorder()
-            .fillMaxWidth()
-    ) {
-        var creditAmount by rememberSaveable { mutableFloatStateOf(0.0f) }
-        var advanceAmount by rememberSaveable { mutableFloatStateOf(0.0f) }
-
-        var isExpanded by rememberSaveable() { mutableStateOf(false) }
-        var selectedOption by rememberSaveable { mutableStateOf("Cash") }
-        val options = remember { mutableListOf("Cash", "UPI", "Card", "Net Banking") }
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Label("Party Name ", true)
-            Spacer(Modifier.width(6.dp))
-            DropdownMenu(
-                isExpanded, selectedOption, options,
-                onValueChange = { selectedOption = it },
-                onDismissRequest = { isExpanded = false },
-                onExpandedChange = { isExpanded = it }
-            )
-            Spacer(Modifier.width(4.dp))
-            Button(
-                onClick = {},
-                shape = RoundedCornerShape(8.dp)
-            ) {
-                Text("Add New +", fontSize = 10.sp)
-            }
-        }
-        Spacer(Modifier.height(6.dp))
-        AmountComponent("Credit Amount", creditAmount.toString()) {
-            it.toFloatOrNull()?.apply {
-                creditAmount = this
-            }
-        }
-        Spacer(Modifier.height(12.dp))
-        AmountComponent("Advance Amount", advanceAmount.toString()) {
-            it.toFloatOrNull()?.apply {
-                advanceAmount = this
-            }
-        }
-    }
-}
-
-@Composable
-fun BillContainer() {
-    var billNumber by rememberSaveable { mutableStateOf("") }
-    var date by rememberSaveable { mutableStateOf("") }
-    val datePickerState = rememberDatePickerState()
-    Column(
-        modifier = Modifier
-            .decorativeBorder()
-            .fillMaxWidth()
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Label("Bill No.", true)
-            Spacer(Modifier.width(12.dp))
-            TextComponent("Bill No", billNumber) {
-                billNumber = it
-            }
-        }
-        Spacer(Modifier.height(8.dp))
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Label("Bill Date", true)
-            Spacer(Modifier.width(12.dp))
-            DateComponent(date, datePickerState) {
-                date = it
-            }
-        }
-        Row(verticalAlignment = Alignment.CenterVertically) {
-
-        }
-    }
-
-}
-
-@Composable
-fun TextComponent(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column {
-        BasicTextField(
-            value,
-            onValueChange = {
-                if (it.isDigitsOnly()) {
-                    onValueChange(it)
-                } else {
-                    onValueChange(value)
-                }
-            },
-            modifier = Modifier
-                .width(150.dp)
-                .height(34.dp),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .border(
-                            width = 1.dp,
-                            color = Color.Gray,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    if (value.isEmpty() || value == "0") {
-                        Text(label, color = Color.Gray)
-                    } else {
-                        innerTextField()
-                    }
-                }
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Number)
-        )
-    }
-}
-
-@Composable
 fun DateComponent(
-    value: String,
+    value: Instant,
     datePickerState: DatePickerState,
     onValueChange: (String) -> Unit
 ) {
     BasicTextField(
-        value,
+        value.toLocalDateTime(currentTimeZone).toString(),
         onValueChange = {},
         modifier = Modifier
             .width(150.dp)
@@ -338,7 +427,7 @@ fun DateComponent(
                     .padding(horizontal = 12.dp, vertical = 8.dp),
                 contentAlignment = Alignment.CenterStart
             ) {
-                if (value.isEmpty() || value == "") {
+                if (value.toString().isEmpty() || value.toString() == "") {
                     Row {
                         Icon(Icons.Default.CalendarMonth, "", tint = Color.Gray)
                         CurrentDateDisplay()
@@ -370,14 +459,17 @@ fun CurrentDateDisplay() {
 }
 
 @Composable
-fun PaymentModeContainer() {
+fun PaymentModeContainer(
+    isExpanded: Boolean,
+    selectedOption: String,
+    options: List<String>,
+    onValueChange: (String) -> Unit,
+    onDismissRequest: () -> Unit,
+    onExpandedChange: (Boolean) -> Unit
+) {
     Column(
         modifier = Modifier.decorativeBorder()
     ) {
-        var isExpanded by rememberSaveable() { mutableStateOf(false) }
-        var selectedOption by rememberSaveable { mutableStateOf("Cash") }
-        val options = remember { mutableListOf("Cash", "UPI", "Card", "Net Banking") }
-
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceEvenly,
@@ -387,9 +479,9 @@ fun PaymentModeContainer() {
             Spacer(Modifier.width(8.dp))
             DropdownMenu(
                 isExpanded, selectedOption, options, 200.dp,
-                onValueChange = { selectedOption = it },
-                onDismissRequest = { isExpanded = false },
-                onExpandedChange = { isExpanded = it }
+                onValueChange = onValueChange,
+                onDismissRequest = onDismissRequest,
+                onExpandedChange = onExpandedChange
             )
         }
     }
@@ -511,14 +603,17 @@ fun DropdownMenu(
 
 
 @Composable
-fun ItemButtonContainer() {
+fun TableItemButtonContainer(
+    onAddClick: () -> Unit,
+    onNewClick: () -> Unit
+) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.Center
     ) {
-        ItemButton(Icons.Outlined.Add, "+ Add Item")
+        ItemButton(Icons.Outlined.Add, "+ Add Item", onAddClick)
         Spacer(Modifier.weight(1f))
-        ItemButton(Icons.Outlined.Add, "+ New Item")
+        ItemButton(Icons.Outlined.Add, "+ New Item", onNewClick)
     }
 }
 
@@ -557,49 +652,11 @@ fun TermsAndConditionContainer() {
     }
 }
 
-@Composable
-fun AmountComponent(label: String, value: String, onValueChange: (String) -> Unit) {
-    Column {
-        Label(label)
-        Spacer(Modifier.height(6.dp))
-        BasicTextField(
-            value,
-            onValueChange = {
-                if (it.isNotEmpty() && it.toDoubleOrNull() != null) {
-                    onValueChange(it)
-                    return@BasicTextField
-                }
-                onValueChange(value)
-            },
-            modifier = Modifier
-                .width(250.dp)
-                .height(34.dp),
-            decorationBox = { innerTextField ->
-                Box(
-                    modifier = Modifier
-                        .border(
-                            width = 1.dp,
-                            color = Color.Gray,
-                            shape = RoundedCornerShape(4.dp)
-                        )
-                        .padding(horizontal = 12.dp, vertical = 8.dp),
-                    contentAlignment = Alignment.CenterStart
-                ) {
-                    innerTextField()
-                }
-            },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions.Default.copy(keyboardType = KeyboardType.Decimal)
-
-        )
-    }
-}
-
 
 @Preview("Payment Form Preview", showBackground = true)
 @Composable
 fun PaymentFormPreview() {
-    PaymentForm(PaddingValues(10.dp))
+    PaymentFormRoute(PaddingValues(10.dp))
 }
 
 

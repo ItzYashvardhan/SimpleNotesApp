@@ -82,6 +82,10 @@ dependencies {
     implementation(libs.androidx.paging.runtime)
     implementation(libs.androidx.paging.compose)
 
+    //Compose
+    implementation(libs.vico.compose)
+    implementation(libs.vico.compose.m3)
+
     //TEST
     testImplementation(libs.junit)
     androidTestImplementation(platform(libs.androidx.compose.bom))
